@@ -26,7 +26,7 @@ BuildRequires:  pkgconfig(gstreamer-video-0.10)
 BuildRequires:  pkgconfig(gstreamer-pbutils-0.10)
 BuildRequires:  pkgconfig(gstreamer-app-0.10)
 BuildRequires:  pkgconfig(gstreamer-plugins-bad-free-0.10)
-BuildRequires:  pkgconfig(libresourceqt5)
+#BuildRequires:  pkgconfig(libresourceqt5)
 
 %description
 Qt is a cross-platform application and UI framework. Using Qt, you can
@@ -74,13 +74,13 @@ Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 %description plugin-mediaservice-gstaudiodecoder
 This package contains the GStreamer audio decoder plugin for QtMultimedia
 
-%package plugin-resourcepolicy-resourceqt
-Summary:    Qt Multimedia - libresourceqt resource policy plugin
-Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
-
-%description plugin-resourcepolicy-resourceqt
-This package contains the libresourceqt resource policy plugin for QtMultimedia
+#%package plugin-resourcepolicy-resourceqt
+#Summary:    Qt Multimedia - libresourceqt resource policy plugin
+#Group:      Qt/Qt
+#Requires:   %{name} = %{version}-%{release}
+#
+#%description plugin-resourcepolicy-resourceqt
+#This package contains the libresourceqt resource policy plugin for QtMultimedia
 
 %package plugin-mediaservice-gstcamerabin
 Summary:    Qt Multimedia - GStreamer camerabin video capture media service
@@ -228,9 +228,9 @@ rm -rf %{buildroot}/%{_includedir}/qt5/Qt
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/playlistformats/libqtmultimedia_m3u.so
 
-%files plugin-resourcepolicy-resourceqt
-%defattr(-,root,root,-)
-%{_libdir}/qt5/plugins/resourcepolicy/libresourceqt.so
+#%files plugin-resourcepolicy-resourceqt
+#%defattr(-,root,root,-)
+#%{_libdir}/qt5/plugins/resourcepolicy/libresourceqt.so
 
 %files plugin-audio-pulseaudio
 %defattr(-,root,root,-)
