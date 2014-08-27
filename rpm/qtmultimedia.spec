@@ -6,6 +6,7 @@ Group:      Qt/Qt
 License:    LGPLv2.1 with exception or GPLv3
 URL:        http://qt.nokia.com
 Source0:    %{name}-%{version}.tar.bz2
+Patch0:     qtmultimedia-gstreamer1.patch
 BuildRequires:  qt5-qtcore-devel
 BuildRequires:  qt5-qtgui-devel
 BuildRequires:  qt5-qtwidgets-devel
@@ -18,14 +19,14 @@ BuildRequires:  pkgconfig(alsa)
 BuildRequires:  fdupes
 BuildRequires:  pkgconfig(libpulse)
 BuildRequires:  pkgconfig(libpulse-mainloop-glib)
-BuildRequires:  pkgconfig(gstreamer-0.10)
-BuildRequires:  pkgconfig(gstreamer-base-0.10)
-BuildRequires:  pkgconfig(gstreamer-interfaces-0.10)
-BuildRequires:  pkgconfig(gstreamer-audio-0.10)
-BuildRequires:  pkgconfig(gstreamer-video-0.10)
-BuildRequires:  pkgconfig(gstreamer-pbutils-0.10)
-BuildRequires:  pkgconfig(gstreamer-app-0.10)
-BuildRequires:  pkgconfig(gstreamer-plugins-bad-free-0.10)
+BuildRequires:  pkgconfig(gstreamer-1.0)
+BuildRequires:  pkgconfig(gstreamer-base-1.0)
+BuildRequires:  pkgconfig(gstreamer-audio-1.0)
+BuildRequires:  pkgconfig(gstreamer-video-1.0)
+BuildRequires:  pkgconfig(gstreamer-pbutils-1.0)
+BuildRequires:  pkgconfig(gstreamer-app-1.0)
+BuildRequires:  pkgconfig(gstreamer-plugins-base-1.0)
+BuildRequires:  pkgconfig(gstreamer-plugins-bad-free-1.0)
 #BuildRequires:  pkgconfig(libresourceqt5)
 
 %description
@@ -118,6 +119,14 @@ Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 %description plugin-playlistformats-m3u
 This package contains the M3U playlist support
 
+%package plugin-audio-alsa
+Summary:    Qt Multimedia - ALSA plugin
+Group:      Qt/Qt
+Requires:   %{name} = %{version}-%{release}
+
+%description plugin-audio-alsa
+This package contains the ALSA sound support.
+
 %package plugin-audio-pulseaudio
 Summary:    Qt Multimedia - Pulse Audio plugin
 Group:      Qt/Qt
@@ -129,6 +138,7 @@ This package contains the pulse audio sound effect support.
 
 %prep
 %setup -q -n %{name}-%{version}/upstream
+%patch0 -p1
 
 %build
 export QTDIR=/usr/share/qt5
@@ -231,6 +241,10 @@ rm -rf %{buildroot}/%{_includedir}/qt5/Qt
 #%files plugin-resourcepolicy-resourceqt
 #%defattr(-,root,root,-)
 #%{_libdir}/qt5/plugins/resourcepolicy/libresourceqt.so
+
+%files plugin-audio-alsa
+%defattr(-,root,root,-)
+%{_libdir}/qt5/plugins/audio/libqtaudio_alsa.so
 
 %files plugin-audio-pulseaudio
 %defattr(-,root,root,-)
