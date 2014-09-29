@@ -1,11 +1,14 @@
-Name:       qt5-qtmultimedia
+# Package prefix
+%define pkgname qt5-qtmultimedia
+
+Name:       qtmultimedia
 Summary:    Qt Multimedia module
-Version:    5.0.2
-Release:    1%{?dist}
+Version:    5.3.2
+Release:    1
 Group:      Qt/Qt
 License:    LGPLv2.1 with exception or GPLv3
-URL:        http://qt.nokia.com
-Source0:    %{name}-%{version}.tar.bz2
+URL:        http://qt.io
+Source0:    %{name}-%{version}.tar.xz
 Patch0:     qtmultimedia-gstreamer1.patch
 BuildRequires:  qt5-qtcore-devel
 BuildRequires:  qt5-qtgui-devel
@@ -33,112 +36,135 @@ BuildRequires:  pkgconfig(gstreamer-plugins-bad-free-1.0)
 Qt is a cross-platform application and UI framework. Using Qt, you can
 write web-enabled applications once and deploy them across desktop,
 mobile and embedded systems without rewriting the source code.
-.
-This package contains the QtMultimedia module
+
+This package contains the QtMultimedia module.
 
 
-%package devel
-Summary:    Qt Multimedia - development files
+%package -n %{pkgname}
+Summary:    Qt Multimedia module
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
 
-%description devel
+%description -n %{pkgname}
 Qt is a cross-platform application and UI framework. Using Qt, you can
 write web-enabled applications once and deploy them across desktop,
 mobile and embedded systems without rewriting the source code.
-.
-This package contains the QtMultimedia module development files
+
+This package contains the QtMultimedia module.
+
+
+%package -n %{pkgname}-devel
+Summary:    Qt Multimedia - development files
+Group:      Qt/Qt
+Requires:   %{pkgname} = %{version}-%{release}
+
+%description -n %{pkgname}-devel
+Qt is a cross-platform application and UI framework. Using Qt, you can
+write web-enabled applications once and deploy them across desktop,
+mobile and embedded systems without rewriting the source code.
+
+This package contains the QtMultimedia module development files.
+
 
 %package -n qt5-qtdeclarative-import-multimedia
 Summary:    QtQml multimedia import
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 Requires:   qt5-qtdeclarative
 
 %description -n qt5-qtdeclarative-import-multimedia
 This package contains the Multimedia import for QtQml
 
-%package gsttools
+
+%package -n %{pkgname}-gsttools
 Summary:    Qt Multimedia - Utility library for GStreamer media services
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 
-%description gsttools
+%description -n %{pkgname}-gsttools
 This package contains a shared library for the GStreamer QtMultimedia media services
 
-%package plugin-mediaservice-gstaudiodecoder
+
+%package -n %{pkgname}-plugin-mediaservice-gstaudiodecoder
 Summary:    Qt Multimedia - GStreamer audio decoder media service
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 
-%description plugin-mediaservice-gstaudiodecoder
+%description -n %{pkgname}-plugin-mediaservice-gstaudiodecoder
 This package contains the GStreamer audio decoder plugin for QtMultimedia
 
-#%package plugin-resourcepolicy-resourceqt
+
+#%package -n %{pkgname}-plugin-resourcepolicy-resourceqt
 #Summary:    Qt Multimedia - libresourceqt resource policy plugin
 #Group:      Qt/Qt
-#Requires:   %{name} = %{version}-%{release}
+#Requires:   %{pkgname} = %{version}-%{release}
 #
-#%description plugin-resourcepolicy-resourceqt
+#%description -n %{pkgname}-plugin-resourcepolicy-resourceqt
 #This package contains the libresourceqt resource policy plugin for QtMultimedia
 
-%package plugin-mediaservice-gstcamerabin
+
+%package -n %{pkgname}-plugin-mediaservice-gstcamerabin
 Summary:    Qt Multimedia - GStreamer camerabin video capture media service
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 
-%description plugin-mediaservice-gstcamerabin
+%description -n %{pkgname}-plugin-mediaservice-gstcamerabin
 This package contains the GStreamer camerabin video capture plugin for QtMultimedia
 
-%package plugin-mediaservice-gstmediacapture
+
+%package -n %{pkgname}-plugin-mediaservice-gstmediacapture
 Summary:    Qt Multimedia - GStreamer video4linux2 video capture media service
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 
-%description plugin-mediaservice-gstmediacapture
+%description -n %{pkgname}-plugin-mediaservice-gstmediacapture
 This package contains the GStreamer video4linux2 video capture plugin for QtMultimedia
 
-%package plugin-mediaservice-gstmediaplayer
+
+%package -n %{pkgname}-plugin-mediaservice-gstmediaplayer
 Summary:    Qt Multimedia - GStreamer playback media service
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 
-%description plugin-mediaservice-gstmediaplayer
+%description -n %{pkgname}-plugin-mediaservice-gstmediaplayer
 This package contains the GStreamer media playback plugin for QtMultimedia
 
-%package plugin-playlistformats-m3u
+
+%package -n %{pkgname}-plugin-playlistformats-m3u
 Summary:    Qt Multimedia - M3U playlist support
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 Requires:   qt5-qtmultimedia-gsttools = %{version}-%{release}
 
-%description plugin-playlistformats-m3u
+%description -n %{pkgname}-plugin-playlistformats-m3u
 This package contains the M3U playlist support
 
-%package plugin-audio-alsa
+
+%package -n %{pkgname}-plugin-audio-alsa
 Summary:    Qt Multimedia - ALSA plugin
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 
-%description plugin-audio-alsa
+%description -n %{pkgname}-plugin-audio-alsa
 This package contains the ALSA sound support.
 
-%package plugin-audio-pulseaudio
+
+%package -n %{pkgname}-plugin-audio-pulseaudio
 Summary:    Qt Multimedia - Pulse Audio plugin
 Group:      Qt/Qt
-Requires:   %{name} = %{version}-%{release}
+Requires:   %{pkgname} = %{version}-%{release}
 
-%description plugin-audio-pulseaudio
+%description -n %{pkgname}-plugin-audio-pulseaudio
 This package contains the pulse audio sound effect support.
 
 
 %prep
-%setup -q -n %{name}-%{version}/upstream
+%setup -q -n %{name}-%{version}
 %patch0 -p1
+
 
 %build
 export QTDIR=/usr/share/qt5
@@ -147,6 +173,7 @@ touch .git
 %qmake5
 make %{?_smp_mflags}
 
+
 %install
 rm -rf %{buildroot}
 %qmake5_install
@@ -154,37 +181,28 @@ rm -rf %{buildroot}
 rm -f %{buildroot}/%{_libdir}/*.la
 # Fix wrong path in pkgconfig files
 find %{buildroot}%{_libdir}/pkgconfig -type f -name '*.pc' \
--exec perl -pi -e "s, -L%{_builddir}/?\S+,,g" {} \;
+    -exec perl -pi -e "s, -L%{_builddir}/?\S+,,g" {} \;
 # Fix wrong path in prl files
 find %{buildroot}%{_libdir} -type f -name '*.prl' \
--exec sed -i -e "/^QMAKE_PRL_BUILD_DIR/d;s/\(QMAKE_PRL_LIBS =\).*/\1/" {} \;
-#
+    -exec sed -i -e "/^QMAKE_PRL_BUILD_DIR/d;s/\(QMAKE_PRL_LIBS =\).*/\1/" {} \;
+
 # We don't need qt5/Qt/
 rm -rf %{buildroot}/%{_includedir}/qt5/Qt
-
-
 
 %fdupes %{buildroot}/%{_includedir}
 
 
-
-
-
-%post
+%post -n %{pkgname}
 /sbin/ldconfig
-%postun
+%postun -n %{pkgname}
 /sbin/ldconfig
 
-%post gsttools
+%post -n %{pkgname}-gsttools
 /sbin/ldconfig
-%postun gsttools
+%postun -n %{pkgname}-gsttools
 /sbin/ldconfig
 
-
-
-
-
-%files
+%files -n %{pkgname}
 %defattr(-,root,root,-)
 %{_libdir}/libQt5Multimedia.so.5
 %{_libdir}/libQt5Multimedia.so.5.*
@@ -193,7 +211,7 @@ rm -rf %{buildroot}/%{_includedir}/qt5/Qt
 %{_libdir}/libQt5MultimediaQuick_p.so.5
 %{_libdir}/libQt5MultimediaQuick_p.so.5.*
 
-%files devel
+%files -n %{pkgname}-devel
 %defattr(-,root,root,-)
 %{_libdir}/libQt5Multimedia.so
 %{_libdir}/libQt5MultimediaWidgets.so
@@ -208,45 +226,43 @@ rm -rf %{buildroot}/%{_includedir}/qt5/Qt
 %{_datadir}/qt5/mkspecs/
 %{_libdir}/cmake/
 
-
 %files -n qt5-qtdeclarative-import-multimedia
 %defattr(-,root,root,-)
 %{_libdir}/qt5/qml/QtMultimedia/
 
-%files gsttools
+%files -n %{pkgname}-gsttools
 %defattr(-,root,root,-)
 %{_libdir}/libqgsttools_p.so.1
 %{_libdir}/libqgsttools_p.so.1.*
 
-%files plugin-mediaservice-gstaudiodecoder
+%files -n %{pkgname}-plugin-mediaservice-gstaudiodecoder
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/mediaservice/libgstaudiodecoder.so
 
-%files plugin-mediaservice-gstcamerabin
+%files -n %{pkgname}-plugin-mediaservice-gstcamerabin
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/mediaservice/libgstcamerabin.so
 
-%files plugin-mediaservice-gstmediacapture
+%files -n %{pkgname}-plugin-mediaservice-gstmediacapture
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/mediaservice/libgstmediacapture.so
 
-%files plugin-mediaservice-gstmediaplayer
+%files -n %{pkgname}-plugin-mediaservice-gstmediaplayer
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/mediaservice/libgstmediaplayer.so
 
-%files plugin-playlistformats-m3u
+%files -n %{pkgname}-plugin-playlistformats-m3u
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/playlistformats/libqtmultimedia_m3u.so
 
-#%files plugin-resourcepolicy-resourceqt
+#%files -n %{pkgname}-plugin-resourcepolicy-resourceqt
 #%defattr(-,root,root,-)
 #%{_libdir}/qt5/plugins/resourcepolicy/libresourceqt.so
 
-%files plugin-audio-alsa
+%files -n %{pkgname}-plugin-audio-alsa
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/audio/libqtaudio_alsa.so
 
-%files plugin-audio-pulseaudio
+%files -n %{pkgname}-plugin-audio-pulseaudio
 %defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/audio/libqtmedia_pulse.so
-
