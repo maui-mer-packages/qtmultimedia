@@ -9,7 +9,6 @@ Group:      Qt/Qt
 License:    LGPLv2.1 with exception or GPLv3
 URL:        http://qt.io
 Source0:    %{name}-%{version}.tar.xz
-Patch0:     qtmultimedia-gstreamer1.patch
 BuildRequires:  qt5-qtcore-devel
 BuildRequires:  qt5-qtgui-devel
 BuildRequires:  qt5-qtwidgets-devel
@@ -163,7 +162,6 @@ This package contains the pulse audio sound effect support.
 
 %prep
 %setup -q -n %{name}-%{version}
-%patch0 -p1
 
 
 %build
