@@ -1,0 +1,18 @@
+From: Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+Date: Thu, 2 Oct 2014 08:22:46 +0200
+Subject: Restore 5.3.2 module version
+
+---
+ .qmake.conf | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/.qmake.conf b/.qmake.conf
+index 17a3a57..60effa7 100644
+--- a/.qmake.conf
++++ b/.qmake.conf
+@@ -1,4 +1,4 @@
+ load(qt_build_config)
+ CONFIG += qt_example_installs
+ 
+-MODULE_VERSION = 5.4.0
++MODULE_VERSION = 5.3.2
