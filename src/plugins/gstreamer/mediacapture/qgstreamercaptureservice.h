@@ -51,6 +51,7 @@ QT_BEGIN_NAMESPACE
 class QAudioInputSelectorControl;
 class QVideoDeviceSelectorControl;
 
+class QGstreamerAudioProbeControl;
 class QGstreamerCaptureSession;
 class QGstreamerCameraControl;
 class QGstreamerMessage;
@@ -78,9 +79,7 @@ private:
 
     QGstreamerCaptureSession *m_captureSession;
     QGstreamerCameraControl *m_cameraControl;
-#if defined(USE_GSTREAMER_CAMERA)
     QGstreamerV4L2Input *m_videoInput;
-#endif
     QGstreamerCaptureMetaDataControl *m_metaDataControl;
 
     QAudioInputSelectorControl *m_audioInputSelector;
@@ -94,6 +93,8 @@ private:
     QMediaControl *m_videoWidgetControl;
 #endif
     QGstreamerImageCaptureControl *m_imageCaptureControl;
+
+    QGstreamerAudioProbeControl *m_audioProbeControl;
 };
 
 QT_END_NAMESPACE

@@ -79,32 +79,15 @@ extern const CLSID CLSID_VideoInputDeviceCategory;
 
 QT_USE_NAMESPACE
 
-static int g_refCount = 0;
-void addRefCount()
-{
-    if (++g_refCount == 1)
-        CoInitialize(NULL);
-}
-
-void releaseRefCount()
-{
-    if (--g_refCount == 0)
-        CoUninitialize();
-}
-
 QMediaService* DSServicePlugin::create(QString const& key)
 {
 #ifdef QMEDIA_DIRECTSHOW_CAMERA
-    if (key == QLatin1String(Q_MEDIASERVICE_CAMERA)) {
-        addRefCount();
+    if (key == QLatin1String(Q_MEDIASERVICE_CAMERA))
         return new DSCameraService;
-    }
 #endif
 #ifdef QMEDIA_DIRECTSHOW_PLAYER
-    if (key == QLatin1String(Q_MEDIASERVICE_MEDIAPLAYER)) {
-        addRefCount();
+    if (key == QLatin1String(Q_MEDIASERVICE_MEDIAPLAYER))
         return new DirectShowPlayerService;
-    }
 #endif
 
     return 0;
@@ -113,7 +96,6 @@ QMediaService* DSServicePlugin::create(QString const& key)
 void DSServicePlugin::release(QMediaService *service)
 {
     delete service;
-    releaseRefCount();
 }
 
 QMediaServiceProviderHint::Features DSServicePlugin::supportedFeatures(
@@ -172,8 +154,6 @@ QString DSServicePlugin::deviceDescription(const QByteArray &service, const QByt
 
 void DSServicePlugin::updateDevices() const
 {
-    addRefCount();
-
     m_defaultCameraDevice.clear();
     DSVideoDeviceControl::enumerateDevices(&m_cameraDevices, &m_cameraDescriptions);
 
@@ -182,8 +162,6 @@ void DSServicePlugin::updateDevices() const
     } else {
         m_defaultCameraDevice = m_cameraDevices.first();
     }
-
-    releaseRefCount();
 }
 #endif
 

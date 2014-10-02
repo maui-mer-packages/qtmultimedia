@@ -5,8 +5,7 @@ PLUGIN_TYPE = audio
 PLUGIN_CLASS_NAME = QWindowsAudioPlugin
 load(qt_plugin)
 
-LIBS += -lstrmiids -lole32 -loleaut32
-!wince*:LIBS += -lwinmm
+LIBS += -lwinmm -lstrmiids -lole32 -loleaut32
 
 HEADERS += \
     qwindowsaudioplugin.h \

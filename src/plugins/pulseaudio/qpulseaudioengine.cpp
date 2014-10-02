@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2014 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Toolkit.
@@ -170,17 +170,15 @@ static void contextStateCallbackInit(pa_context *context, void *userdata)
     pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
 }
 
-static void contextStateCallback(pa_context *c, void *userdata)
+static void contextStateCallback(pa_context *context, void *userdata)
 {
-    QPulseAudioEngine *self = reinterpret_cast<QPulseAudioEngine*>(userdata);
-    pa_context_state_t state = pa_context_get_state(c);
+    Q_UNUSED(userdata);
+    Q_UNUSED(context);
 
 #ifdef DEBUG_PULSE
+    pa_context_state_t state = pa_context_get_state(context);
     qDebug() << QPulseAudioInternal::stateToQString(state);
 #endif
-
-    if (state == PA_CONTEXT_FAILED)
-        QMetaObject::invokeMethod(self, "onContextFailed", Qt::QueuedConnection);
 }
 
 Q_GLOBAL_STATIC(QPulseAudioEngine, pulseEngine);
@@ -189,59 +187,40 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     : QObject(parent)
     , m_mainLoopApi(0)
     , m_context(0)
-    , m_prepared(false)
-{
-    prepare();
-}
 
-QPulseAudioEngine::~QPulseAudioEngine()
-{
-    if (m_prepared)
-        release();
-}
-
-void QPulseAudioEngine::prepare()
 {
     bool keepGoing = true;
     bool ok = true;
 
     m_mainLoop = pa_threaded_mainloop_new();
     if (m_mainLoop == 0) {
-        qWarning("PulseAudioService: unable to create pulseaudio mainloop");
+        qWarning("Unable to create pulseaudio mainloop");
         return;
     }
 
     if (pa_threaded_mainloop_start(m_mainLoop) != 0) {
-        qWarning("PulseAudioService: unable to start pulseaudio mainloop");
+        qWarning("Unable to start pulseaudio mainloop");
         pa_threaded_mainloop_free(m_mainLoop);
-        m_mainLoop = 0;
         return;
     }
 
     m_mainLoopApi = pa_threaded_mainloop_get_api(m_mainLoop);
 
-    lock();
+    pa_threaded_mainloop_lock(m_mainLoop);
 
-    m_context = pa_context_new(m_mainLoopApi, QString(QLatin1String("QtPulseAudio:%1")).arg(::getpid()).toLatin1().constData());
+    m_context = pa_context_new(m_mainLoopApi, QString(QLatin1String("QtmPulseContext:%1")).arg(::getpid()).toLatin1().constData());
+    pa_context_set_state_callback(m_context, contextStateCallbackInit, this);
 
-    if (m_context == 0) {
-        qWarning("PulseAudioService: Unable to create new pulseaudio context");
-        pa_threaded_mainloop_unlock(m_mainLoop);
+    if (!m_context) {
+        qWarning("Unable to create new pulseaudio context");
         pa_threaded_mainloop_free(m_mainLoop);
-        m_mainLoop = 0;
-        onContextFailed();
         return;
     }
 
-    pa_context_set_state_callback(m_context, contextStateCallbackInit, this);
-
-    if (pa_context_connect(m_context, 0, (pa_context_flags_t)0, 0) < 0) {
-        qWarning("PulseAudioService: pa_context_connect() failed");
+    if (pa_context_connect(m_context, NULL, (pa_context_flags_t)0, NULL) < 0) {
+        qWarning("Unable to create a connection to the pulseaudio context");
         pa_context_unref(m_context);
-        pa_threaded_mainloop_unlock(m_mainLoop);
         pa_threaded_mainloop_free(m_mainLoop);
-        m_mainLoop = 0;
-        m_context = 0;
         return;
     }
 
@@ -262,49 +241,47 @@ void QPulseAudioEngine::prepare()
                 break;
 
             case PA_CONTEXT_TERMINATED:
-                qCritical("PulseAudioService: Context terminated.");
+                qCritical("Context terminated.");
                 keepGoing = false;
                 ok = false;
                 break;
 
             case PA_CONTEXT_FAILED:
             default:
-                qCritical() << QString("PulseAudioService: Connection failure: %1").arg(pa_strerror(pa_context_errno(m_context)));
+                qCritical() << QString("Connection failure: %1").arg(pa_strerror(pa_context_errno(m_context)));
                 keepGoing = false;
                 ok = false;
         }
 
-        if (keepGoing)
+        if (keepGoing) {
             pa_threaded_mainloop_wait(m_mainLoop);
+        }
     }
 
     if (ok) {
         pa_context_set_state_callback(m_context, contextStateCallback, this);
     } else {
-        pa_context_unref(m_context);
-        m_context = 0;
+        if (m_context) {
+            pa_context_unref(m_context);
+            m_context = 0;
+        }
     }
 
-    unlock();
+    pa_threaded_mainloop_unlock(m_mainLoop);
 
     if (ok) {
-        updateDevices();
-        m_prepared = true;
-    } else {
-        pa_threaded_mainloop_free(m_mainLoop);
-        m_mainLoop = 0;
-        onContextFailed();
+        serverInfo();
+        sinks();
+        sources();
     }
 }
 
-void QPulseAudioEngine::release()
+QPulseAudioEngine::~QPulseAudioEngine()
 {
-    if (!m_prepared)
-        return;
-
     if (m_context) {
+        pa_threaded_mainloop_lock(m_mainLoop);
         pa_context_disconnect(m_context);
-        pa_context_unref(m_context);
+        pa_threaded_mainloop_unlock(m_mainLoop);
         m_context = 0;
     }
 
@@ -313,52 +290,62 @@ void QPulseAudioEngine::release()
         pa_threaded_mainloop_free(m_mainLoop);
         m_mainLoop = 0;
     }
-
-    m_prepared = false;
 }
 
-void QPulseAudioEngine::updateDevices()
+void QPulseAudioEngine::serverInfo()
 {
-    lock();
+    pa_operation *operation;
 
-    // Get default input and output devices
-    pa_operation *operation = pa_context_get_server_info(m_context, serverInfoCallback, this);
+    pa_threaded_mainloop_lock(m_mainLoop);
+
+    operation = pa_context_get_server_info(m_context, serverInfoCallback, this);
+
     while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
         pa_threaded_mainloop_wait(m_mainLoop);
+
     pa_operation_unref(operation);
 
-    // Get output devices
+    pa_threaded_mainloop_unlock(m_mainLoop);
+}
+
+void QPulseAudioEngine::sinks()
+{
+    pa_operation *operation;
+
+    pa_threaded_mainloop_lock(m_mainLoop);
+
     operation = pa_context_get_sink_info_list(m_context, sinkInfoCallback, this);
+
     while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
         pa_threaded_mainloop_wait(m_mainLoop);
+
     pa_operation_unref(operation);
 
-    // Get input devices
-    operation = pa_context_get_source_info_list(m_context, sourceInfoCallback, this);
-    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
-        pa_threaded_mainloop_wait(m_mainLoop);
-    pa_operation_unref(operation);
+    pa_threaded_mainloop_unlock(m_mainLoop);
 
-    unlock();
-
-    // Swap the default output to index 0
+    // Swap the default sink to index 0
     m_sinks.removeOne(m_defaultSink);
     m_sinks.prepend(m_defaultSink);
-
-    // Swap the default input to index 0
-    m_sources.removeOne(m_defaultSource);
-    m_sources.prepend(m_defaultSource);
 }
 
-void QPulseAudioEngine::onContextFailed()
+void QPulseAudioEngine::sources()
 {
-    // Give a chance to the connected slots to still use the Pulse main loop before releasing it.
-    emit contextFailed();
+    pa_operation *operation;
 
-    release();
+    pa_threaded_mainloop_lock(m_mainLoop);
 
-    // Try to reconnect later
-    QTimer::singleShot(3000, this, SLOT(prepare()));
+    operation = pa_context_get_source_info_list(m_context, sourceInfoCallback, this);
+
+    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
+        pa_threaded_mainloop_wait(m_mainLoop);
+
+    pa_operation_unref(operation);
+
+    pa_threaded_mainloop_unlock(m_mainLoop);
+
+    // Swap the default source to index 0
+    m_sources.removeOne(m_defaultSource);
+    m_sources.prepend(m_defaultSource);
 }
 
 QPulseAudioEngine *QPulseAudioEngine::instance()

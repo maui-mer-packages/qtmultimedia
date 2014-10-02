@@ -61,10 +61,8 @@ AVFVideoWindowControl::AVFVideoWindowControl(QObject *parent)
 
 AVFVideoWindowControl::~AVFVideoWindowControl()
 {
-    if (m_playerLayer) {
-        [m_playerLayer removeFromSuperlayer];
+    if (m_playerLayer)
         [m_playerLayer release];
-    }
 }
 
 WId AVFVideoWindowControl::winId() const

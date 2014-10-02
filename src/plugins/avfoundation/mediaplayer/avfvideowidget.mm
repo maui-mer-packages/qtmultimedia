@@ -64,10 +64,8 @@ AVFVideoWidget::~AVFVideoWidget()
     qDebug() << Q_FUNC_INFO;
 #endif
 
-    if (m_playerLayer) {
-        [m_playerLayer removeFromSuperlayer];
+    if (m_playerLayer)
         [m_playerLayer release];
-    }
 }
 
 QSize AVFVideoWidget::sizeHint() const

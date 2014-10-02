@@ -52,18 +52,23 @@ class DSImageCaptureControl : public QCameraImageCaptureControl
     Q_OBJECT
 public:
     DSImageCaptureControl(DSCameraSession *session);
-    ~DSImageCaptureControl();
+    virtual ~DSImageCaptureControl();
 
     bool isReadyForCapture() const;
     int capture(const QString &fileName);
 
-    QCameraImageCapture::DriveMode driveMode() const;
-    void setDriveMode(QCameraImageCapture::DriveMode mode);
+    virtual QCameraImageCapture::DriveMode driveMode() const { return QCameraImageCapture::SingleImageCapture; }
+    virtual void setDriveMode(QCameraImageCapture::DriveMode mode) { Q_UNUSED(mode) }
 
-    void cancelCapture() {}
+    virtual void cancelCapture() {}
+
+private slots:
+    void updateState();
+
 
 private:
     DSCameraSession *m_session;
+    bool m_ready;
 };
 
 QT_END_NAMESPACE

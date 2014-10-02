@@ -36,16 +36,11 @@ unix:!mac:!android {
         SUBDIRS += audiocapture
     }
 
-    config_pulseaudio {
-        SUBDIRS += pulseaudio
-    } else:config_alsa {
-        SUBDIRS += alsa
-    }
+    config_pulseaudio: SUBDIRS += pulseaudio
+    config_alsa: SUBDIRS += alsa
 
     # v4l is turned off because it is not supported in Qt 5
-    # config_linux_v4l {
-    #     !maemo*:SUBDIRS += v4l
-    # }
+    # !maemo*:SUBDIRS += v4l
 }
 
 mac:!simulator {
@@ -53,7 +48,7 @@ mac:!simulator {
 
     config_avfoundation: SUBDIRS += avfoundation
 
-    !ios: SUBDIRS += qt7
+    contains(QT_CONFIG, opengl.*):!ios: SUBDIRS += qt7
 }
 
 config_resourcepolicy {

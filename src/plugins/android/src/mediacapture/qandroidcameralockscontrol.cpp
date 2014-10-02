@@ -66,13 +66,13 @@ QAndroidCameraLocksControl::QAndroidCameraLocksControl(QAndroidCameraSession *se
 
 QCamera::LockTypes QAndroidCameraLocksControl::supportedLocks() const
 {
-    return m_supportedLocks;
+    return (QCamera::LockExposure | QCamera::LockWhiteBalance | QCamera::LockFocus);
 }
 
 QCamera::LockStatus QAndroidCameraLocksControl::lockStatus(QCamera::LockType lock) const
 {
     if (!m_supportedLocks.testFlag(lock) || !m_session->camera())
-        return QCamera::Unlocked;
+        return QCamera::Locked;
 
     if (lock == QCamera::LockFocus)
         return m_focusLockStatus;
@@ -83,7 +83,7 @@ QCamera::LockStatus QAndroidCameraLocksControl::lockStatus(QCamera::LockType loc
     if (lock == QCamera::LockWhiteBalance)
         return m_whiteBalanceLockStatus;
 
-    return QCamera::Unlocked;
+    return QCamera::Locked;
 }
 
 void QAndroidCameraLocksControl::searchAndLock(QCamera::LockTypes locks)

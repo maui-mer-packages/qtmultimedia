@@ -87,20 +87,13 @@ private slots:
     void map();
     void mapImage_data();
     void mapImage();
+    void mapPlanes_data();
+    void mapPlanes();
     void imageDetach();
     void formatConversion_data();
     void formatConversion();
 
     void metadata();
-
-    void debugType_data();
-    void debugType();
-
-    void debug_data();
-    void debug();
-
-    void debugFormat_data();
-    void debugFormat();
 
     void isMapped();
     void isReadable();
@@ -122,6 +115,35 @@ public:
 
     uchar *map(MapMode, int *, int *) { return 0; }
     void unmap() {}
+};
+
+class QtTestPlanarVideoBuffer : public QAbstractPlanarVideoBuffer
+{
+public:
+    QtTestPlanarVideoBuffer()
+        : QAbstractPlanarVideoBuffer(NoHandle), m_planeCount(0), m_mapMode(NotMapped) {}
+    explicit QtTestPlanarVideoBuffer(QAbstractVideoBuffer::HandleType type)
+        : QAbstractPlanarVideoBuffer(type), m_planeCount(0), m_mapMode(NotMapped) {}
+
+    MapMode mapMode() const { return m_mapMode; }
+
+    int map(MapMode mode, int *numBytes, int bytesPerLine[4], uchar *data[4]) {
+        m_mapMode = mode;
+        if (numBytes)
+            *numBytes = m_numBytes;
+        for (int i = 0; i < m_planeCount; ++i) {
+            data[i] = m_data[i];
+            bytesPerLine[i] = m_bytesPerLine[i];
+        }
+        return m_planeCount;
+    }
+    void unmap() { m_mapMode = NotMapped; }
+
+    uchar *m_data[4];
+    int m_bytesPerLine[4];
+    int m_planeCount;
+    int m_numBytes;
+    MapMode m_mapMode;
 };
 
 tst_QVideoFrame::tst_QVideoFrame()
@@ -736,6 +758,97 @@ void tst_QVideoFrame::mapImage()
     QCOMPARE(frame.mapMode(), QAbstractVideoBuffer::NotMapped);
 }
 
+void tst_QVideoFrame::mapPlanes_data()
+{
+    QTest::addColumn<QVideoFrame>("frame");
+    QTest::addColumn<QList<int> >("strides");
+    QTest::addColumn<QList<int> >("offsets");
+
+    static uchar bufferData[1024];
+
+    QtTestPlanarVideoBuffer *planarBuffer = new QtTestPlanarVideoBuffer;
+    planarBuffer->m_data[0] = bufferData;
+    planarBuffer->m_data[1] = bufferData + 512;
+    planarBuffer->m_data[2] = bufferData + 765;
+    planarBuffer->m_bytesPerLine[0] = 64;
+    planarBuffer->m_bytesPerLine[1] = 36;
+    planarBuffer->m_bytesPerLine[2] = 36;
+    planarBuffer->m_planeCount = 3;
+    planarBuffer->m_numBytes = sizeof(bufferData);
+
+    QTest::newRow("Planar")
+            << QVideoFrame(planarBuffer, QSize(64, 64), QVideoFrame::Format_YUV420P)
+            << (QList<int>() << 64 << 36 << 36)
+            << (QList<int>() << 512 << 765);
+    QTest::newRow("Format_YUV420P")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_YUV420P)
+            << (QList<int>() << 64 << 62 << 62)
+            << (QList<int>() << 4096 << 6080);
+    QTest::newRow("Format_YV12")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_YV12)
+            << (QList<int>() << 64 << 62 << 62)
+            << (QList<int>() << 4096 << 6080);
+    QTest::newRow("Format_NV12")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_NV12)
+            << (QList<int>() << 64 << 64)
+            << (QList<int>() << 4096);
+    QTest::newRow("Format_NV21")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_NV21)
+            << (QList<int>() << 64 << 64)
+            << (QList<int>() << 4096);
+    QTest::newRow("Format_IMC2")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_IMC2)
+            << (QList<int>() << 64 << 64)
+            << (QList<int>() << 4096);
+    QTest::newRow("Format_IMC4")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_IMC4)
+            << (QList<int>() << 64 << 64)
+            << (QList<int>() << 4096);
+    QTest::newRow("Format_IMC1")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_IMC1)
+            << (QList<int>() << 64 << 64 << 64)
+            << (QList<int>() << 4096 << 6144);
+    QTest::newRow("Format_IMC3")
+            << QVideoFrame(8096, QSize(60, 64), 64, QVideoFrame::Format_IMC3)
+            << (QList<int>() << 64 << 64 << 64)
+            << (QList<int>() << 4096 << 6144);
+    QTest::newRow("Format_ARGB32")
+            << QVideoFrame(8096, QSize(60, 64), 256, QVideoFrame::Format_ARGB32)
+            << (QList<int>() << 256)
+            << (QList<int>());
+}
+
+void tst_QVideoFrame::mapPlanes()
+{
+    QFETCH(QVideoFrame, frame);
+    QFETCH(QList<int>, strides);
+    QFETCH(QList<int>, offsets);
+
+    QCOMPARE(strides.count(), offsets.count() + 1);
+
+    QCOMPARE(frame.map(QAbstractVideoBuffer::ReadOnly), true);
+    QCOMPARE(frame.planeCount(), strides.count());
+
+    QVERIFY(strides.count() > 0);
+    QCOMPARE(frame.bytesPerLine(0), strides.at(0));
+    QVERIFY(frame.bits(0));
+
+    if (strides.count() > 1) {
+        QCOMPARE(frame.bytesPerLine(1), strides.at(1));
+        QCOMPARE(int(frame.bits(1) - frame.bits(0)), offsets.at(0));
+    }
+    if (strides.count() > 2) {
+        QCOMPARE(frame.bytesPerLine(2), strides.at(2));
+        QCOMPARE(int(frame.bits(2) - frame.bits(0)), offsets.at(1));
+    }
+    if (strides.count() > 3) {
+        QCOMPARE(frame.bytesPerLine(3), strides.at(3));
+        QCOMPARE(int(frame.bits(3) - frame.bits(0)), offsets.at(0));
+    }
+
+    frame.unmap();
+}
+
 void tst_QVideoFrame::imageDetach()
 {
     const uint red = qRgb(255, 0, 0);
@@ -1026,154 +1139,6 @@ void tst_QVideoFrame::isWritable()
     QVERIFY(frame.isMapped());
     QVERIFY(frame.isWritable());
     frame.unmap();
-}
-
-void tst_QVideoFrame::debugType_data()
-{
-    QTest::addColumn<QVideoFrame::FieldType>("fieldType");
-    QTest::addColumn<QString>("stringized");
-
-    ADD_ENUM_TEST(ProgressiveFrame);
-    ADD_ENUM_TEST(InterlacedFrame);
-    ADD_ENUM_TEST(TopField);
-    ADD_ENUM_TEST(BottomField);
-}
-
-void tst_QVideoFrame::debugType()
-{
-    QFETCH(QVideoFrame::FieldType, fieldType);
-    QFETCH(QString, stringized);
-
-    QTest::ignoreMessage(QtDebugMsg, stringized.toLatin1().constData());
-    qDebug() << fieldType;
-}
-
-void tst_QVideoFrame::debug_data()
-{
-    QTest::addColumn<QVideoFrame>("frame");
-    QTest::addColumn<QString>("stringized");
-
-    QVideoFrame f;
-    QTest::newRow("default") << f << QString::fromLatin1("QVideoFrame(QSize(-1, -1) , Format_Invalid, NoHandle, NotMapped, [no timestamp])");
-
-    QVideoFrame f2;
-    f2.setStartTime(12345);
-    f2.setEndTime(8000000000LL);
-    QTest::newRow("times") << f2 << QString::fromLatin1("QVideoFrame(QSize(-1, -1) , Format_Invalid, NoHandle, NotMapped, 0:00:00.12345 - 2:13:20.00)");
-
-    QVideoFrame f3;
-    f3.setFieldType(QVideoFrame::ProgressiveFrame);
-    QTest::newRow("times prog") << f3 << QString::fromLatin1("QVideoFrame(QSize(-1, -1) , Format_Invalid, NoHandle, NotMapped, [no timestamp])");
-
-    QVideoFrame f4;
-    f4.setFieldType(QVideoFrame::TopField);
-    QTest::newRow("times top") << f4 << QString::fromLatin1("QVideoFrame(QSize(-1, -1) , Format_Invalid, NoHandle, NotMapped, [no timestamp])");
-
-    QVideoFrame f5;
-    f5.setFieldType(QVideoFrame::TopField);
-    f5.setEndTime(90000000000LL);
-    QTest::newRow("end but no start") << f5 << QString::fromLatin1("QVideoFrame(QSize(-1, -1) , Format_Invalid, NoHandle, NotMapped, [no timestamp])");
-
-    QVideoFrame f6;
-    f6.setStartTime(12345000000LL);
-    f6.setEndTime(80000000000LL);
-    QTest::newRow("times big") << f6 << QString::fromLatin1("QVideoFrame(QSize(-1, -1) , Format_Invalid, NoHandle, NotMapped, 3:25:45.00 - 22:13:20.00)");
-
-    QVideoFrame g(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    QTest::newRow("more valid") << g << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, [no timestamp])");
-
-    QVideoFrame g2(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    g2.setStartTime(9000000000LL);
-    g2.setEndTime(9000000000LL);
-    QTest::newRow("more valid") << g2 << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, @2:30:00.00)");
-
-    QVideoFrame g3(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    g3.setStartTime(900000LL);
-    g3.setEndTime(900000LL);
-    QTest::newRow("more valid single timestamp") << g3 << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, @00:00.900000)");
-
-    QVideoFrame g4(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    g4.setStartTime(200000000LL);
-    g4.setEndTime(300000000LL);
-    QTest::newRow("more valid") << g4 << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, 03:20.00 - 05:00.00)");
-
-    QVideoFrame g5(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    g5.setStartTime(200000000LL);
-    QTest::newRow("more valid until forever") << g5 << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, 03:20.00 - forever)");
-
-    QVideoFrame g6(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    g6.setStartTime(9000000000LL);
-    QTest::newRow("more valid for long forever") << g6 << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, 2:30:00.00 - forever)");
-
-    QVideoFrame g7(0, QSize(320,240), 640, QVideoFrame::Format_ARGB32);
-    g7.setStartTime(9000000000LL);
-    g7.setMetaData("bar", 42);
-    QTest::newRow("more valid for long forever + metadata") << g7 << QString::fromLatin1("QVideoFrame(QSize(320, 240) , Format_ARGB32, NoHandle, NotMapped, 2:30:00.00 - forever, metaData: QMap((\"bar\", QVariant(int, 42) ) ) )");
-}
-
-void tst_QVideoFrame::debug()
-{
-    QFETCH(QVideoFrame, frame);
-    QFETCH(QString, stringized);
-
-    QTest::ignoreMessage(QtDebugMsg, stringized.toLatin1().constData());
-    qDebug() << frame;
-}
-
-void tst_QVideoFrame::debugFormat_data()
-{
-    QTest::addColumn<QVideoFrame::PixelFormat>("format");
-    QTest::addColumn<QString>("stringized");
-
-    ADD_ENUM_TEST(Format_Invalid);
-    ADD_ENUM_TEST(Format_ARGB32);
-    ADD_ENUM_TEST(Format_ARGB32_Premultiplied);
-    ADD_ENUM_TEST(Format_RGB32);
-    ADD_ENUM_TEST(Format_RGB24);
-    ADD_ENUM_TEST(Format_RGB565);
-    ADD_ENUM_TEST(Format_RGB555);
-    ADD_ENUM_TEST(Format_ARGB8565_Premultiplied);
-    ADD_ENUM_TEST(Format_BGRA32);
-    ADD_ENUM_TEST(Format_BGRA32_Premultiplied);
-    ADD_ENUM_TEST(Format_BGR32);
-    ADD_ENUM_TEST(Format_BGR24);
-    ADD_ENUM_TEST(Format_BGR565);
-    ADD_ENUM_TEST(Format_BGR555);
-    ADD_ENUM_TEST(Format_BGRA5658_Premultiplied);
-
-    ADD_ENUM_TEST(Format_AYUV444);
-    ADD_ENUM_TEST(Format_AYUV444_Premultiplied);
-    ADD_ENUM_TEST(Format_YUV444);
-    ADD_ENUM_TEST(Format_YUV420P);
-    ADD_ENUM_TEST(Format_YV12);
-    ADD_ENUM_TEST(Format_UYVY);
-    ADD_ENUM_TEST(Format_YUYV);
-    ADD_ENUM_TEST(Format_NV12);
-    ADD_ENUM_TEST(Format_NV21);
-    ADD_ENUM_TEST(Format_IMC1);
-    ADD_ENUM_TEST(Format_IMC2);
-    ADD_ENUM_TEST(Format_IMC3);
-    ADD_ENUM_TEST(Format_IMC4);
-    ADD_ENUM_TEST(Format_Y8);
-    ADD_ENUM_TEST(Format_Y16);
-
-    ADD_ENUM_TEST(Format_Jpeg);
-
-    ADD_ENUM_TEST(Format_CameraRaw);
-    ADD_ENUM_TEST(Format_AdobeDng);
-
-    // User enums are formatted differently
-    QTest::newRow("user 1000") << QVideoFrame::Format_User << QString::fromLatin1("UserType(1000)");
-    QTest::newRow("user 1005") << QVideoFrame::PixelFormat(QVideoFrame::Format_User + 5) << QString::fromLatin1("UserType(1005)");
-}
-
-void tst_QVideoFrame::debugFormat()
-{
-    QFETCH(QVideoFrame::PixelFormat, format);
-    QFETCH(QString, stringized);
-
-    QTest::ignoreMessage(QtDebugMsg, stringized.toLatin1().constData());
-    qDebug() << format;
 }
 
 QTEST_MAIN(tst_QVideoFrame)

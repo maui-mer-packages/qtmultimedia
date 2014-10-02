@@ -56,19 +56,6 @@ static QMutex g_cameraMapMutex;
 typedef QMap<int, AndroidCamera *> CameraMap;
 Q_GLOBAL_STATIC(CameraMap, g_cameraMap)
 
-static inline bool exceptionCheckAndClear(JNIEnv *env)
-{
-    if (Q_UNLIKELY(env->ExceptionCheck())) {
-#ifdef QT_DEBUG
-        env->ExceptionDescribe();
-#endif // QT_DEBUG
-        env->ExceptionClear();
-        return true;
-    }
-
-    return false;
-}
-
 static QRect areaToRect(jobject areaObj)
 {
     QJNIObjectPrivate area(areaObj);
@@ -145,9 +132,9 @@ public:
     Q_INVOKABLE bool init(int cameraId);
 
     Q_INVOKABLE void release();
-    Q_INVOKABLE bool lock();
-    Q_INVOKABLE bool unlock();
-    Q_INVOKABLE bool reconnect();
+    Q_INVOKABLE void lock();
+    Q_INVOKABLE void unlock();
+    Q_INVOKABLE void reconnect();
 
     Q_INVOKABLE AndroidCamera::CameraFacing getFacing();
     Q_INVOKABLE int getNativeOrientation();
@@ -160,7 +147,7 @@ public:
 
     Q_INVOKABLE QSize previewSize() const { return m_previewSize; }
     Q_INVOKABLE void updatePreviewSize();
-    Q_INVOKABLE bool setPreviewTexture(void *surfaceTexture);
+    Q_INVOKABLE void setPreviewTexture(void *surfaceTexture);
 
     Q_INVOKABLE bool isZoomSupported();
     Q_INVOKABLE int getMaxZoom();
@@ -279,7 +266,7 @@ AndroidCamera *AndroidCamera::open(int cameraId)
     worker->start();
     d->moveToThread(worker);
     connect(worker, &QThread::finished, d, &AndroidCameraPrivate::deleteLater);
-    bool ok = true;
+    bool ok = false;
     QMetaObject::invokeMethod(d, "init", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, ok), Q_ARG(int, cameraId));
     if (!ok) {
         worker->quit();
@@ -302,28 +289,22 @@ int AndroidCamera::cameraId() const
     return d->m_cameraId;
 }
 
-bool AndroidCamera::lock()
+void AndroidCamera::lock()
 {
     Q_D(AndroidCamera);
-    bool ok = true;
-    QMetaObject::invokeMethod(d, "lock", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, ok));
-    return ok;
+    QMetaObject::invokeMethod(d, "lock", Qt::BlockingQueuedConnection);
 }
 
-bool AndroidCamera::unlock()
+void AndroidCamera::unlock()
 {
     Q_D(AndroidCamera);
-    bool ok = true;
-    QMetaObject::invokeMethod(d, "unlock", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, ok));
-    return ok;
+    QMetaObject::invokeMethod(d, "unlock", Qt::BlockingQueuedConnection);
 }
 
-bool AndroidCamera::reconnect()
+void AndroidCamera::reconnect()
 {
     Q_D(AndroidCamera);
-    bool ok = true;
-    QMetaObject::invokeMethod(d, "reconnect", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, ok));
-    return ok;
+    QMetaObject::invokeMethod(d, "reconnect");
 }
 
 void AndroidCamera::release()
@@ -387,16 +368,13 @@ void AndroidCamera::setPreviewSize(const QSize &size)
     QMetaObject::invokeMethod(d, "updatePreviewSize");
 }
 
-bool AndroidCamera::setPreviewTexture(AndroidSurfaceTexture *surfaceTexture)
+void AndroidCamera::setPreviewTexture(AndroidSurfaceTexture *surfaceTexture)
 {
     Q_D(AndroidCamera);
-    bool ok = true;
     QMetaObject::invokeMethod(d,
                               "setPreviewTexture",
                               Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(bool, ok),
                               Q_ARG(void *, surfaceTexture ? surfaceTexture->surfaceTexture() : 0));
-    return ok;
 }
 
 bool AndroidCamera::isZoomSupported()
@@ -720,12 +698,12 @@ AndroidCameraPrivate::~AndroidCameraPrivate()
 bool AndroidCameraPrivate::init(int cameraId)
 {
     m_cameraId = cameraId;
-    QJNIEnvironmentPrivate env;
     m_camera = QJNIObjectPrivate::callStaticObjectMethod("android/hardware/Camera",
                                                          "open",
                                                          "(I)Landroid/hardware/Camera;",
                                                          cameraId);
-    if (exceptionCheckAndClear(env) || !m_camera.isValid())
+
+    if (!m_camera.isValid())
         return false;
 
     m_cameraListener = QJNIObjectPrivate(g_qtCameraListenerClass, "(I)V", m_cameraId);
@@ -753,25 +731,26 @@ void AndroidCameraPrivate::release()
         m_camera.callMethod<void>("release");
 }
 
-bool AndroidCameraPrivate::lock()
+void AndroidCameraPrivate::lock()
 {
-    QJNIEnvironmentPrivate env;
     m_camera.callMethod<void>("lock");
-    return !exceptionCheckAndClear(env);
 }
 
-bool AndroidCameraPrivate::unlock()
+void AndroidCameraPrivate::unlock()
 {
-    QJNIEnvironmentPrivate env;
     m_camera.callMethod<void>("unlock");
-    return !exceptionCheckAndClear(env);
 }
 
-bool AndroidCameraPrivate::reconnect()
+void AndroidCameraPrivate::reconnect()
 {
     QJNIEnvironmentPrivate env;
     m_camera.callMethod<void>("reconnect");
-    return !exceptionCheckAndClear(env);
+    if (env->ExceptionCheck()) {
+#ifdef QT_DEBUG
+        env->ExceptionDescribe();
+#endif // QT_DEBUG
+        env->ExceptionDescribe();
+    }
 }
 
 AndroidCamera::CameraFacing AndroidCameraPrivate::getFacing()
@@ -853,13 +832,11 @@ void AndroidCameraPrivate::updatePreviewSize()
     emit previewSizeChanged();
 }
 
-bool AndroidCameraPrivate::setPreviewTexture(void *surfaceTexture)
+void AndroidCameraPrivate::setPreviewTexture(void *surfaceTexture)
 {
-    QJNIEnvironmentPrivate env;
     m_camera.callMethod<void>("setPreviewTexture",
                               "(Landroid/graphics/SurfaceTexture;)V",
                               static_cast<jobject>(surfaceTexture));
-    return !exceptionCheckAndClear(env);
 }
 
 bool AndroidCameraPrivate::isZoomSupported()
@@ -1043,7 +1020,8 @@ void AndroidCameraPrivate::setFocusAreas(const QList<QRect> &areas)
             arrayList.callMethod<jboolean>("add",
                                            "(Ljava/lang/Object;)Z",
                                            rectToArea(areas.at(i)).object());
-            exceptionCheckAndClear(env);
+            if (env->ExceptionCheck())
+                env->ExceptionClear();
         }
         list = arrayList;
     }
@@ -1369,11 +1347,9 @@ void AndroidCameraPrivate::fetchLastPreviewFrame()
 
 void AndroidCameraPrivate::applyParameters()
 {
-    QJNIEnvironmentPrivate env;
     m_camera.callMethod<void>("setParameters",
                               "(Landroid/hardware/Camera$Parameters;)V",
                               m_parameters.object());
-    exceptionCheckAndClear(env);
 }
 
 QStringList AndroidCameraPrivate::callParametersStringListMethod(const QByteArray &methodName)
@@ -1410,8 +1386,10 @@ static JNINativeMethod methods[] = {
 bool AndroidCamera::initJNI(JNIEnv *env)
 {
     jclass clazz = env->FindClass("org/qtproject/qt5/android/multimedia/QtCameraListener");
+    if (env->ExceptionCheck())
+        env->ExceptionClear();
 
-    if (!exceptionCheckAndClear(env) && clazz) {
+    if (clazz) {
         g_qtCameraListenerClass = static_cast<jclass>(env->NewGlobalRef(clazz));
         if (env->RegisterNatives(g_qtCameraListenerClass,
                                  methods,

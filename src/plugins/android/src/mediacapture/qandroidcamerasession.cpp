@@ -331,11 +331,10 @@ bool QAndroidCameraSession::startPreview()
     if (m_previewStarted)
         return true;
 
-    if (!m_videoOutput->isReady())
+    if (m_videoOutput->isReady())
+        m_camera->setPreviewTexture(m_videoOutput->surfaceTexture());
+    else
         return true; // delay starting until the video output is ready
-
-    if (!m_camera->setPreviewTexture(m_videoOutput->surfaceTexture()))
-        return false;
 
     m_status = QCamera::StartingStatus;
     emit statusChanged(m_status);

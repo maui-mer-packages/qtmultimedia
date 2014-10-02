@@ -58,21 +58,28 @@ public:
     DSCameraControl(QObject *parent = 0);
     ~DSCameraControl();
 
-    QCamera::State state() const { return m_state; }
+    void start();
+    void stop();
+    QCamera::State state() const;
 
     QCamera::CaptureModes captureMode() const { return m_captureMode; }
-    void setCaptureMode(QCamera::CaptureModes mode);
+    void setCaptureMode(QCamera::CaptureModes mode)
+    {
+        if (m_captureMode != mode) {
+            m_captureMode = mode;
+            emit captureModeChanged(mode);
+        }
+    }
 
     void setState(QCamera::State state);
 
-    QCamera::Status status() const;
+    QCamera::Status status() const { return QCamera::UnavailableStatus; }
     bool isCaptureModeSupported(QCamera::CaptureModes mode) const;
     bool canChangeProperty(PropertyChangeType /* changeType */, QCamera::Status /* status */) const {return false; }
 
 private:
     DSCameraSession *m_session;
     DSCameraService *m_service;
-    QCamera::State m_state;
     QCamera::CaptureModes m_captureMode;
 };
 

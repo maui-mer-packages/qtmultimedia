@@ -1,6 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2014 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Jolla Ltd, author: <robin.burchell@jollamobile.com>
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Toolkit.
@@ -39,9 +40,61 @@
 **
 ****************************************************************************/
 
-#include <linux/videodev2.h>
+#ifndef RESOURCEPOLICYINT_H
+#define RESOURCEPOLICYINT_H
 
-int main(int argc, char** argv)
+#include <QObject>
+#include <QMap>
+
+#include <private/qmediaresourceset_p.h>
+#include "resourcepolicyimpl.h"
+
+namespace ResourcePolicy {
+    class ResourceSet;
+};
+
+enum ResourceStatus {
+    Initial = 0,
+    RequestedResource,
+    GrantedResource
+};
+
+struct clientEntry {
+    int id;
+    ResourcePolicyImpl *client;
+    ResourceStatus status;
+    bool videoEnabled;
+};
+
+class ResourcePolicyInt : public QObject
 {
-    return 0;
-}
+    Q_OBJECT
+public:
+    ResourcePolicyInt(QObject *parent = 0);
+    ~ResourcePolicyInt();
+
+    bool isVideoEnabled(const ResourcePolicyImpl *client) const;
+    void setVideoEnabled(const ResourcePolicyImpl *client, bool videoEnabled);
+    void acquire(const ResourcePolicyImpl *client);
+    void release(const ResourcePolicyImpl *client);
+    bool isGranted(const ResourcePolicyImpl *client) const;
+    bool isAvailable() const;
+
+    void addClient(ResourcePolicyImpl *client);
+    void removeClient(ResourcePolicyImpl *client);
+
+private slots:
+    void handleResourcesGranted();
+    void handleResourcesDenied();
+    void handleResourcesLost();
+
+private:
+    QMap<const ResourcePolicyImpl*, clientEntry> m_clients;
+
+    int m_acquired;
+    ResourceStatus m_status;
+    int m_video;
+    ResourcePolicy::ResourceSet *m_resourceSet;
+};
+
+#endif // RESOURCEPOLICYINT_H
