@@ -58,6 +58,7 @@ This package contains the QtMultimedia module.
 Summary:    Qt Multimedia - development files
 Group:      Qt/Qt
 Requires:   %{pkgname} = %{version}-%{release}
+Requires:   %{pkgname}-plugin-audio-alsa = %{version}-%{release}
 
 %description -n %{pkgname}-devel
 Qt is a cross-platform application and UI framework. Using Qt, you can
