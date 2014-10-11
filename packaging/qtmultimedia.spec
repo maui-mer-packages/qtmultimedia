@@ -4,7 +4,7 @@
 Name:       qtmultimedia
 Summary:    Qt Multimedia module
 Version:    5.3.2
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    LGPLv2.1 with exception or GPLv3
 URL:        http://qt.io
